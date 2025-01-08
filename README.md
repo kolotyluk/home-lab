@@ -3,23 +3,70 @@ Home Laboratory
 
 Where retired computer scientists and software engineers like to play....
 
+<!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
+
+- [45 Drives Home Lab 15](#45-drives-home-lab-15)
+   * [Bill of Materials](#bill-of-materials)
+   * [Suppliers](#suppliers)
+   * [Rationale](#rationale)
+      + [Supermicro H13SSL-NT](#supermicro-h13ssl-nt)
+      + [Software](#software)
+      + [ZFS](#zfs)
+   * [Details](#details)
+      + [RAID](#raid)
+      + [HL15](#hl15)
+      + [H13SSL-NT](#h13ssl-nt)
+- [Lessons Learned](#lessons-learned)
+   * [HL15 Chassis](#hl15-chassis)
+      + [Documentation](#documentation)
+      + [PSU](#psu)
+      + [Fans](#fans)
+      + [Cables](#cables)
+         - [DHL Extortion](#dhl-extortion)
+      + [Disk Cages](#disk-cages)
+
+<!-- TOC end -->
+
+
 # 45 Drives Home Lab 15
 
 A project to build a home-lab server based on the 45 Drive HL15 chassis.
 
-## Bill of Matrials
+## Bill of Materials
 
 1. [45 Drives HL15](https://store.45homelab.com/configure/hl15)
    1. Black Faceplate
-   2. Noctua Fans
-2. [Supermicro H13SSL-NT](https://www.supermicro.com/en/products/motherboard/h13ssl-nt)
-3. [AMD 9015](https://www.amd.com/en/products/processors/server/epyc/9005-series/amd-epyc-9015.html)
-4. [Corsair WS DDR5 ECC RDIMM 64GB (4 x 16GB) DDR5 DRAM 6400MT/s CL32 Memory Kit × 1](https://www.corsair.com/ca/en/p/memory/cma64gx5m4b6400c32/ws-ddr5-ecc-rdimm-64gb-4-x-16gb-ddr5-dram-6400mt-s-cl32-memory-kit-cma64gx5m4b6400c32)
-6. [WD Black SN850X](https://www.westerndigital.com/en-in/products/internal-drives/wd-black-sn850x-nvme-ssd?sku=WDS800T2XHE)
-7. [MCIO x8 74 Pin ( NVMe) to 2 X Mini SAS SFF-8643 Cable - 50 CM](https://www.microsatacables.com/mcio-x8-74pin-nvme-to-2x-sff-8643-nvme-50-cm)
-8. [JetKVM](https://www.kickstarter.com/projects/jetkvm/jetkvm)
-9. [TrueNAS](https://www.truenas.com)
-10. [Plex](https://www.plex.tv/en-ca/personal-media-server)
+   1. Noctua Fans
+1. [Supermicro H13SSL-NT](https://www.supermicro.com/en/products/motherboard/h13ssl-nt)
+1. [Supermicro 4U Active CPU Heat Sink Socket SP5](https://store.supermicro.com/us_en/4u-active-amd-epyc-snk-p0084ap4.html)
+1. [AMD 9015](https://www.amd.com/en/products/processors/server/epyc/9005-series/amd-epyc-9015.html)
+1. [Corsair WS DDR5 ECC RDIMM 64GB (4 x 16GB) DDR5 DRAM 6400MT/s CL32 Memory Kit × 1](https://www.corsair.com/ca/en/p/memory/cma64gx5m4b6400c32/ws-ddr5-ecc-rdimm-64gb-4-x-16gb-ddr5-dram-6400mt-s-cl32-memory-kit-cma64gx5m4b6400c32)
+1. [WD Black SN850X](https://www.westerndigital.com/en-in/products/internal-drives/wd-black-sn850x-nvme-ssd?sku=WDS800T2XHE)
+1. [MCIO x8 74 Pin ( NVMe) to 2 X Mini SAS SFF-8643 Cable - 50 CM](https://www.microsatacables.com/mcio-x8-74pin-nvme-to-2x-sff-8643-nvme-50-cm)
+1. [Enermax Evo Galaxy EGX1250WT](https://www.newegg.ca/enermax-sgalaxy-evo-egx1250ewt-1250w/p/N82E16817194046)
+   1. Repurposed from another build
+1. [JetKVM](https://www.kickstarter.com/projects/jetkvm/jetkvm)
+1. [Wera Kraftform Adjustable Torque Screwdriver with Quick-Release Chuck](https://www.kmstools.com/wera-kraftform-adjustable-torque-screwdriver-with-quick-release-chuck.html)
+   1. Torx bit, t 20 x 152 mm
+1. [TrueNAS](https://www.truenas.com)
+1. [Plex](https://www.plex.tv/en-ca/personal-media-server)
+
+## Suppliers
+
+1. [45 Drives](https://45drives.com)
+   1. HL15
+1. [ATIC Computers](https://www.atic.ca)
+   1. Supermicro H13SSL-NT
+   1. Supermicro 4U Active CPU Heat Sink Socket SP5
+   1. AMD 9015
+1. [Corsair](https://www.corsair.com)
+   1. Corsair WS DDR5 ECC RDIMM 64GB (4 x 16GB) DDR5 DRAM 6400MT/s CL32 Memory Kit
+1. [Western Digital](https://www.westerndigital.com)
+   1. WD Black SN850X
+1. [Micro SATA Cables](https://www.microsatacables.com)
+1. [KMS Tools](https://www.kmstools.com)
+   1. WER-074710 Wera Kraftform Adjustable Torque Screwdriver with Quick-Release Chuck
+   2. WER-050280 Wera Torx bit, t 20 x 152 mm
 
 
 ## Rationale
@@ -164,4 +211,103 @@ and USB ports on the H13SSL-NT if there are any problems with IPMI. I need a VGA
 USB-C cable.
 
 ![image](supermicro-server-mainboard-h13ssl-nt-rear-panel.jpg)
+
+# Lessons Learned
+
+We learn more from our mistakes than our successes, so I hope people can learn from my mistakes.
+
+## HL15 Chassis
+
+> [!TIP]
+> If you have ordered the HL15 without a system board, it is strongly recommended you remove the fans and disk cages
+> first, as this will greatly aid in reverse engineering the chassis, to make up for the lack of documentation.
+
+### Documentation
+
+The HL15 comes with paper with a QR code that takes you to https://45homelab.com/gettingstarted/hl15,
+but I did not find this terribly helpful. In particular, the
+[HL15 User Manual](https://45homelab.com/pdf/45HomeLab-User%20Manual.pdf)
+assumes you have a fully built system, and does not address many of the needs of someone building a system from scratch.
+Sever times I have suggested to 45Drives they should contract me to write better documentation, but they have been very
+***snotty*** about it.
+
+> [!NOTE]  
+> To be fair, dealing with the people responsible for the
+> [Storinator AV15](https://www.45drives.com/products/storinator-av15-configurations.php)
+> was very disappointing, while I have no serious complaints about the HL15 people.
+
+After unpacking the HL15 I was impressed with the quality of the chassis, but realized I had a lot of reverse
+engineering to do. I installed the Supermicro H13SSL-NT without too much trouble, but in retrospect this would have
+been easier if I removed the fans and disk cage first. They are easy to remove, and doing this greatly aids in
+reverse engineering the chassis, as well as making it easier to install and connect the system board.
+
+### PSU
+
+I deliberately ordered my HL15 without a PSU because I had a 1250 Watt Enermax PSU that I wanted to reuse, but I
+did order the Noctua fans.
+
+[Enermax Galaxy EVO 1,250W Power Supply Review](https://pcper.com/2009/08/enermax-galaxy-evo-1250w-power-supply-review)
+is a great review of this product, and given the expandability options of the HL15 and the H13SSL-NT, there is ample
+power delivery for all the components I plan to use.
+
+- Originally I had this on a 208 volt residential circuit, and this is slightly more efficient.
+- While 110 volts works fine, putting it on a standard 15 amp circuit can be problematic.
+- My plan is to put the HL15 on a 208 volt, 30 amp circuit, but I have not yet done this.
+  - There is a residential clothes drier circuit nearby I hope to repurpose.
+  - A common problem is that if I vacuum the living room, the vacuum cleaner trips the breaker, and all my computers
+    go down. 
+
+### Fans
+
+I plan to have the HL15 in the living room, so I wanted it to be as quiet as possible.
+
+### Cables
+
+The HL15 comes with the SATA cables pre-installed, but I could not order the configuration I wanted as 45Drives does
+not stock the MCIO cables I need for the H13SSL-NT.
+
+I am impressed how professionally the SATA cables are installed, but I had to undo this for various reasons.
+
+1. The H13SSL-NT has one MCIO connector that supports 8 SATA drives.
+   1. This is vertically mounted, and very convenient.
+   2. While there are two more MCIO connectors, they cannot be used for SATA.
+2. The H13SSL-NT has four horizontal SATA connectors that support 4 SATA drives, which is not optimal for the
+   default SATA cable routing.
+3. The H13SSL-NT has two vertical SATA connectors that are no problem at all.
+
+#### DHL Extortion
+
+| :warning: WARNING                                                                         |
+|:------------------------------------------------------------------------------------------|
+| DHL and other shipping companies are extorting money from customers for customs clearance.|
+
+When I ordered cables from Micro SATA Cables, they used DHL, and DHL wanted to charge me extra for customs clearance.
+I consider this extortion, and a criminal racket. I contacted Micro SATA Cables, and they said they get DHL to
+ship without charging me extra, but it took over a week to get the package after it arrived in Canada.
+
+They were actually very understanding of my position, and thanked me for the feedback.
+
+The problem was that because of the Canadian Postal Strike, they could not ship with USPS, and they had to use DHL.
+I told them I was in no hurry, would have been happy to wait. I also told them that companies should be advocates
+for their customers, and not shills for the corrupt shipping industry.
+
+DHL have cause me problems in the past, where they don't knock on the door, and just leave a note, for me to pick
+up the package at their depot, but it takes days to get there. When I complained, they did not care, and claimed
+I was not home, despite me telling them I was home all day.
+
+[![I Fought UPS' Bogus Brokerage Fees, And Won](https://www.youtube.com/watch?v=gKju9a4lA5I/0.jpg)](https://www.youtube.com/watch?v=gKju9a4lA5I)
+
+### Disk Cages
+
+> [!IMPORTANT]  
+> One unfortunate design detail of the HL15 is that the power delivery has a bank of four 4-pin Molex connectors, 
+> but the standard Molex 5-pin PSU cable only has three 4-pin connectors. However, the standard for SATA devices is a 
+> 5-pin Molex with four SATA connectors.
+
+I am not an electrical engineer, so cannot criticize this design, but it is a bit of a pain. I could imagine that
+powering 15 drives from four SATA connectors could be a problem, and this is why they use Molex connectors. Perhaps
+powering 15 drives from a single 5-pin Molex connector could be a problem, but my PSU has six 5-pin Molex connectors.
+
+Unfortunately, I only have one 5-pin Molex to three 4-pin Molex cables, so I had to get another.
+
 
