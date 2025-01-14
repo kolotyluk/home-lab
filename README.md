@@ -27,7 +27,6 @@ Where retired computer scientists and software engineers like to play....
 
 <!-- TOC end -->
 
-
 # 45 Drives Home Lab 15
 
 A project to build a home-lab server based on the 45 Drive HL15 chassis.
@@ -100,6 +99,23 @@ especially for customization. Also, the Storinator people really dropped the bal
 
 Going back to [45homelab.com](https://45homelab.com) I decided to just build it myself, and the presales support has
 been much better. I have built systems before, and while I prefer not to, I am confident I can do it.
+
+### AMD EPYC
+
+This is a server CPU, and I am building a Home Lab Server.
+
+The EPYC line is particularly attractive because it has a lot of cores, a lot of memory channels, and a lot of PCIe
+lanes. This is particularly attractive for a NAS because it can handle a lot of drives, a lot of memory,
+and a lot of I/O. While the EPYC 9015 is a low-end CPU, but it is still a beast, and I can always upgrade later.
+
+The EPYC 9015 has 16 cores, 32 threads, and 32 MB of L3 cache, where the 9965 has 192 cores, 384 threads,
+and 384 MB of L3 cache.
+
+The EPYC 9015 has a TDP of 150 watts, and the 9965 has a TDP of 280 watts.
+
+The EPYC 9005 series has 12 memory channels, supports DDR5 memory, and PCIe 5.0.
+
+
 
 ### Supermicro H13SSL-NT
 
@@ -219,8 +235,22 @@ We learn more from our mistakes than our successes, so I hope people can learn f
 ## HL15 Chassis
 
 > [!TIP]
-> If you have ordered the HL15 without a system board, it is strongly recommended you remove the fans and disk cages
+> If you have ordered the HL15 without a system board, it is strongly recommended you remove the fans and disk cage
 > first, as this will greatly aid in reverse engineering the chassis, to make up for the lack of documentation.
+
+1. First remove the fans from the front of the chassis.
+   1. This is easy, just remove the screws, and unplug the fans.
+1. Remove the second fan cage inside the chassis.
+   1. This is easy, just remove the screws, and unplug the fans.
+1. Remove the disk cage.
+   1. This is easy, just remove the screws.
+1. Before installing the system board, install the backplate for the system board I/O connections.
+   1. IMHO, to not be able to install this after the system board is installed is a design flaw.
+1. After installing the system board, do all the cabling, then install the disk cage, then the second fan cage,
+   then the front fan cage.
+   1. This can be a little tricky, as the power cables are short, and it's important to install things in
+      the right order.
+
 
 ### Documentation
 
@@ -255,11 +285,18 @@ power delivery for all the components I plan to use.
 - My plan is to put the HL15 on a 208 volt, 30 amp circuit, but I have not yet done this.
   - There is a residential clothes drier circuit nearby I hope to repurpose.
   - A common problem is that if I vacuum the living room, the vacuum cleaner trips the breaker, and all my computers
-    go down. 
+    go down.
+
+In retrospect, this PSU is too much for this chassis as the cables take up too much space. Some of the cables are
+hardwired, and the cables for a high-end graphics card are not needed, for now, but cannot be detached. Basically,
+sticking a high-end workstation PSU in a server chassis is not a good idea.
 
 ### Fans
 
-I plan to have the HL15 in the living room, so I wanted it to be as quiet as possible.
+I plan to have the HL15 in the living room, so I wanted it to be as quiet as possible. After powering up the
+system for the first time, I was surprised at how quiet it was with six Noctua fans. The PSU has an even larger
+fan, but it is also silent. The fan on the CPU cooler was initially silent, but under certain conditions, can
+be kinda noisy, but maybe not too bad after putting the cover back on the chassis.
 
 ### Cables
 
@@ -306,8 +343,82 @@ I was not home, despite me telling them I was home all day.
 
 I am not an electrical engineer, so cannot criticize this design, but it is a bit of a pain. I could imagine that
 powering 15 drives from four SATA connectors could be a problem, and this is why they use Molex connectors. Perhaps
-powering 15 drives from a single 5-pin Molex connector could be a problem, but my PSU has six 5-pin Molex connectors.
+powering 15 drives from a single 5-pin Molex connector could be a problem, but my PSU has six 5-pin Molex connectors,
+and four 12-pin connectors.
 
-Unfortunately, I only have one 5-pin Molex to three 4-pin Molex cables, so I had to get another.
+Unfortunately, I only had one 5-pin Molex to three 4-pin Molex cables, so I had to get another.
+
+![image](PSU-to-disks.jpg)
+
+## First Light
+
+Powering up any system for the first time was a bit of a nail-biter. Things started, but there were problems.
+
+1. Before powering on
+   1. I plugged the PSU into the wall
+   2. I plugged a monitor into the VGA port, and powered it on
+   1. I plugged a USB keyboard and mouse into the USB port
+      1. Technically this is not necessary if the BMC works properly... 
+   1. I plugged the BMC ethernet into my ethernet switch
+1. I powered PSU via the external switch
+   1. The BMC Heartbeat LED on the system board started flashing
+      1. Fast while initializing
+      1. Slow after initialization
+   1. The M.2 Error LED (LED9) was solid green
+      1. Supposedly this means the M.2 drive is detected, but according to the user manual, it should be off, so
+         I am not sure what this means, other than the user manual is out of date.
+   1. The LED on the M.2 drive was flashing white, eventually...
+1. Surprisingly, the chassis power switch was flashing, but would not start up the system until it stopped flashing.
+   1. This was a confusing time as nothing happened for a bit, and I was not sure what was going on.
+   1. After the chassis power switch went dark, I pressed the power button, and the system started up, the fans
+      started spinning, and the CPU cooler fan started spinning. The monitor woke up, and I saw the Supermicro logo.
+   1. There was a message that it would take a few minutes to boot, it about 2.5 minutes the first few times.
+1. After the BMC finishes initializing, it displays the BMC network addresses at the bottom of the screen
+   1. IP V4
+   1. IP V6
+   1. After this, you can type one of these addresses into a web browser and connect to the BMC
+      1. Sadly, I could not login because it would not accept the user/password credentials
+      2. While the default user is supposed to be "ADMIN", the password is printed on the shipping box, but
+         it did not work, so I had to create a support ticket with Supermicro
+      3. Eventually, after sleuthing through more documentation, I found that the password is on the system
+         board near the serial number, and is also printed on CPU cover, and this worked, so I closed the
+         support case with Supermincro
+1. After seeing the BMC addresses and other information, the system boots into the UEFI,
+   unless you press the delete key on the keyboard, then it drops you into setup
+   1. I did not spend much time in the UEFI, as it's been a long time since I used an EFI
+   1. I spent a fair bit of time poking around in setup, setting the date and time, inspecting other settings.
+
+The first time I powered up the system, setup only reported 48 GB of RAM, but after reseating the DIMMs, it reported
+0 GB, so that was rather distressing. I could not get it to see the RAM again after that.
 
 
+
+# Slings and Arrows
+
+Some people may find this hard to believe, but working with technology can be very frustrating, and especially
+computer technology.
+
+I started programming computers in 1970, got a BSc. in Computer Science in 1981, and an MSc. in Computer Science
+in 1995, and I have been working as a software engineer since 1979, so I have a lot of experience with computers.
+The most important thing I have learned is that the movie [Idiocracy](https://en.wikipedia.org/wiki/Idiocracy)
+is not a comedy, it is a documentary on where we are headed, largely because of computer technology.
+
+## Supermicro
+
+While they seem to have good products, their ability to design and build functional websites is very poor.
+
+1. I created an account on the support website without problem. But when I tried to create the same account
+   on the sales website, it would not let me because it has different rules for passwords, overly restrictive
+   rules.
+2. When I tried to purchase a BMC license SFT-DCMS-SINGLE, I had nothing but problems.
+   1. Website navigation is poor, I could not navigate to the product page.
+   2. Fortunately, the search function worked, and I was able to find the product page.
+   3. However, you cannot purchase the product without selecting the system board, and the H13SSL-NT is not listed.
+   4. I had to use the support chat, who told me to use a different model. This worked.
+   5. At checkout, I could not pay for the product without creating an account. See first problem above.
+   6. After creating an account, it wanted to verify by sending me email.
+      1. I did not receive the email.
+      2. It told me to check my junk mail, but it was not there.
+      3. I tried giving feedback on their website. Turnaround is about a day based on previous experience.
+      4. I tried phoning for support, waited on hold for 20 minutes, then the phone menu system asked me to
+         leave a message.
