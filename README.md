@@ -9,6 +9,7 @@ Where retired computer scientists and software engineers like to play....
    * [Bill of Materials](#bill-of-materials)
    * [Suppliers](#suppliers)
    * [Rationale](#rationale)
+      + [AMD EPYC](#amd-epyc)
       + [Supermicro H13SSL-NT](#supermicro-h13ssl-nt)
       + [Software](#software)
       + [ZFS](#zfs)
@@ -24,8 +25,12 @@ Where retired computer scientists and software engineers like to play....
       + [Cables](#cables)
          - [DHL Extortion](#dhl-extortion)
       + [Disk Cages](#disk-cages)
+   * [First Light](#first-light)
+- [Slings and Arrows](#slings-and-arrows)
+   * [Supermicro](#supermicro)
 
 <!-- TOC end -->
+
 
 # 45 Drives Home Lab 15
 
