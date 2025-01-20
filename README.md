@@ -31,10 +31,13 @@ Where retired computer scientists and software engineers like to play....
 
 <!-- TOC end -->
 
-
 # 45 Drives Home Lab 15
 
 A project to build a home-lab server based on the 45 Drive HL15 chassis.
+
+I thought of doing a video of this, as I did take a course from GIFT years ago, Gulf Islands Film and Television School,
+and what I learned most was how much work it is, especially when you are solo. I have a lot of respect for people who do
+this for a living. If I decide to do a video, this is the script...
 
 ## Bill of Materials
 
@@ -75,18 +78,20 @@ A project to build a home-lab server based on the 45 Drive HL15 chassis.
 
 ## Rationale
 
-This is a summary, where I expand on these issues in the Details section.
+This is a summary, where I expand on these issues in additional sections.
 
 I have been using a Dell Precision T3500 Since 2009. First this was a workstation I used while working at Kodak,
 then later using it at home, where I added a Sans Digital 8 bay RAID system for archival, file, and media services.
-I also use the SMB service for my Apple Time Machine backups, but this is difficult to configure, and lately
-does not work at all after recent MacOS updates. Hopefully, TrueNAS will be able to handle this, via AFP. 🤞 
+I also use the SMB service for my Apple Time Machine backups, but this is difficult to configure. Hopefully,
+TrueNAS will be able to handle this, via AFP. 🤞 
 
 *As an aside, I have been using RAID systems&mdash;hardware and software&mdash;for over ten years now, and have been
 burned many times. These days I am convinced that
 [Software Defined Storage](https://www.supermicro.com/en/glossary/software-defined-storage)
 (SDS) is the way to go, in particular with something like TrueNAS and ZFS. Albeit, this is my first time using it.*
-See more on this under Details.
+*It is interesting to note that shortly after getting TrueNAS running, and coping most of my files from the Sans Digital
+RAID system, the Sans Digital controller failed, and I was able to restore it to functionality.* Windows 10 is still
+running, but it is futile to try to recover any data from the RAID.
 
 This system also hosts my two printers, an HP LaserJest 1018 and a Kodak Hero 9.1. I cannot get these to run on
 modern MacOS or Windows systems, but there is some hope TrueNAS may have support for the HP printer. The Kodak
@@ -103,7 +108,11 @@ many people testified to the quality/versatility. Initially I thought I would go
 especially for customization. Also, the Storinator people really dropped the ball on presales support.
 
 Going back to [45homelab.com](https://45homelab.com) I decided to just build it myself, and the presales support has
-been much better. I have built systems before, and while I prefer not to, I am confident I can do it.
+been much better. I have built systems before, and while I prefer not to, I was confident I could do it.
+
+Briefly, I considered trying to run
+[TrueNAS Scale on ARM](https://forums.truenas.com/t/truenas-scale-on-arm-2024-thread/2706/2)
+system, but I have no idea when TrueNAS will ever support ARM.
 
 ### AMD EPYC
 
@@ -237,6 +246,14 @@ USB-C cable.
 
 We learn more from our mistakes than our successes, so I hope people can learn from my mistakes.
 
+## Acquisition
+
+Ordering the system board from ATIC Computers was great as they also got me the CPU and CPU cooler. I got a break on
+the CPU because it was from a tray, and not in a box. While I initially gave them the BOM for my project, they
+declined the other things. Located in Vancouver where I lived, it was easy to pick everything up.
+
+
+
 ## HL15 Chassis
 
 > [!TIP]
@@ -276,10 +293,50 @@ engineering to do. I installed the Supermicro H13SSL-NT without too much trouble
 been easier if I removed the fans and disk cage first. They are easy to remove, and doing this greatly aids in
 reverse engineering the chassis, as well as making it easier to install and connect the system board.
 
+### System Board
+
+> [!TIP]
+> Use the camera in your phone to take pictures of the system board before you install it, and after you install it.
+> Also, at First Light (see below) take videos of everything.
+
+My eyesight is not what it used to be, and I have a hard time reading the system board tiny labels, so I took a lot of
+pictures with the 5X zoom on my phone. On the other hand, the main camera is the highest resolution, so you can always
+digitally zoom afterward.
+
+#### Documentation
+
+I have a Rev 2.0 board, but User Manual is for a Rev 1.0b board. This is another good reason to take lots of pictures
+and videos, because not everything is the same, and photos and videos keep one sane.
+
+#### BMC
+
+The default user is "ADMIN", and the password is on the system board near the serial number, and is also printed
+on the CPU cover. Supermicro could have done a better job of documenting this, as there is a "Unique Password" on
+the shipping box in large lettering, but this is not the BMC password.
+
+Using the BMC is really nice, once you get in. Sadly, you need use a VGA monitor to find out what the IP address is,
+or otherwise set it. There may be a way to discover the IP address, but I have not found it yet.
+
+#### M.2 NVME SSD
+
+Initially the BIOS could not see this, even thought the various LEDs suggested this was fine. I had to create
+a support ticket with Supermicro.
+
+#### SATA Cables
+
+SATA 0 - 7 is the MCIO connector, SATA 8 - 11 is the vertical connector, and SATA 12 - 13 is the horizontal.
+
+I love the MCIO to Mini SAS cable, and was able to route this via the HL15 cable management system. This would be
+a much better system with one more MCIO SATA connector.
+
+I had to change jumper ... because with the default jumper setting, the BIOS could not see the SATA drives.
+
+I thought the horizontal SATA connectors might be a problem, but they are not, they slip under the inner fan case
+nicely, but they are not optimal for the default SATA cable routing. C'est la vie.
+
 ### PSU
 
-I deliberately ordered my HL15 without a PSU because I had a 1250 Watt Enermax PSU that I wanted to reuse, but I
-did order the Noctua fans.
+I deliberately ordered my HL15 without a PSU because I had a 1250 Watt Enermax PSU that I wanted to reuse.
 
 [Enermax Galaxy EVO 1,250W Power Supply Review](https://pcper.com/2009/08/enermax-galaxy-evo-1250w-power-supply-review)
 is a great review of this product, and given the expandability options of the HL15 and the H13SSL-NT, there is ample
@@ -298,10 +355,37 @@ sticking a high-end workstation PSU in a server chassis is not a good idea.
 
 ### Fans
 
+Dealing with fans with the Supermicro H13SSL-NT was a bit of a pain and let to a lot of surprises, that led to
+a lot of frustration, a lot of learning, and a lot of support with Supermicro.
+
 I plan to have the HL15 in the living room, so I wanted it to be as quiet as possible. After powering up the
 system for the first time, I was surprised at how quiet it was with six Noctua fans. The PSU has an even larger
 fan, but it is also silent. The fan on the CPU cooler was initially silent, but under certain conditions, can
 be kinda noisy, but maybe not too bad after putting the cover back on the chassis.
+
+- The HL15 comes with the six Noctua fans pre-installed
+- These are all connected to the Noctua
+  [NA-FH1 eight channel PWM fan hub](https://noctua.at/en/noctua-presents-na-fh1-eight-channel-pwm-fan-hub),
+  which is connected to the system board through a single cable
+  - The three front fans are connected directly to the hub
+  - The three internal fans are connected to the hub through a splitter cable
+  - According to Supermicro this is problematic because the hub draws a lot of current, and the system board
+    may not be able to handle it through one fan header
+  - However, the hub can also be powered via a SATA power connector
+- The N13SSL-NT has six fan headers, FAN1, FAN2, FAN3, FAN4, FANA, and FANB
+  - These are divided into two groups
+  - On the advice of Supermicro, I connected the CPU and PSU fans to FANA and FANB to separate them from the
+    Noctua fans. This seems stable, as the fans have stopped cycling up and down, and the system is running cool.
+  - The H13SSL-NT is still unhappy with the fan hub.
+  - The CPU cooler fan could run at 2000 RPM and still be cool, but it runs at 4480 RPM, and is noisy.
+- I tried playing with Fan Mode in the BMC, but this did not seem to make any difference in the end.
+
+![image](fans.png)
+
+In the end, the system is not as quiet as I would like because the CPU cooler fan runs much faster than it needs
+to be, and there seems to be no way to control the fan speed. Everything runs cool, so the fans do not need to run
+as fast as they are.
+
 
 ### Cables
 
@@ -355,6 +439,101 @@ Unfortunately, I only had one 5-pin Molex to three 4-pin Molex cables, so I had 
 
 ![image](PSU-to-disks.jpg)
 
+### RAM
+
+The first time I powered on the system, the BIOS setup only reported 48 GB of RAM, but after reseating the DIMMs,
+it reported 0 GB, and still does.
+
+However, the BMC could see the RAM, and the system booted fine, so I am not sure what is going on.
+
+I opened up a support ticket with Supermicro, but they were not very helpful.
+
+While the RAM is rated at 6400 MT/s, the system board only supports 6000 MT/s. I am hoping that a future BIOS update
+might fix this, but I am not holding my breath.
+
+### M.2 NVMe SSD
+
+Initially, neither the BIOS nor BMC could not see this, even though the various LEDs suggested this was fine.
+The H13SSL-NT User Manual is out of date with respect to the M.2 LEDs.
+
+However, the TrueNAS installer could see it, so I installed TrueNAS on it, and it worked fine. Now the BIOS can see it,
+but the BMC still cannot see it. Also, while the BIOS can see the SATA drives, the BMC cannot see them. Apparently,
+you have to get a license to use the BMC storage features, but I have not yet done this.
+
+I had to create a support ticket with Supermicro, but their help was disappointing.
+
+### TrueNAS Scale
+
+[Downloading](https://www.truenas.com/download-truenas-scale) and Installing TrueNAS Scale was fairly straightforward,
+but burning the ISO to a USB stick was a bit of a pain. Initially I tried using the Macintosh Disk Utility,
+but it was a horror story because the UI/UX is so bad. As someone who taught UI design in a third year university
+course, I am appalled.
+
+In the end, it was easier to use the
+[Macintosh command line utilities.](https://recoverit.wondershare.com/mac-tips/iso-to-usb-on-mac.html)
+While there are many 'burning' utilities, the Macintosh command line is fairly simple to use.
+
+    diskutil list
+    diskutil unmountDisk /dev/disk4
+    sudo dd if=~/Downloads/TrueNAS-SCALE-22.02-RC1.iso of=/dev/disk4 bs=1m
+    eject /dev/disk4
+
+Where my USB showed up as 'disk4'
+
+After burning TrueNAS onto the USB drive, I simply booted from it.
+
+Much to my surprise, the TrueNAS installer could see the M.2 NVMe SSD, and I was able to install TrueNAS on it.
+More to my surprise, the BIOS was automatically configured to boot from the M.2 drive.
+
+Personally, TrueNAS Scale running on an HL15 is a dream come true. The first thing I did was to test as many disks
+as I could, and TrueNAS makes this very easy.
+
+> [!WARNING]
+> Running the 'long' test on a disk can take a long time. It took over 14 hours for an 8 TB disk.
+
+Running the 'short' test only takes a few minutes on an 8 TB disk.
+
+A few of the 4TB disks I had seemed in bad shape, so I pulled them from the system. These were drives I had been
+using in my Sans Digital RAID system, and had failed, but I thought I would give them another try because the
+Sans Digital controller is very picky.
+
+Some of the 2 TB drives seemed kinda sketchy, but after retesting, they seemed to pass, so I am using them now.
+
+#### VDEV Expansion
+
+One of the nicest new features of TrueNAS Electric Eel is that you can now add drives to a ZFS VDEV, one drive at
+a time. While this was harder to do than I imagined, it worked fine, and the system is resilvering the new drive,
+however, it does take a while.
+
+It was interesting to note that I had the server plugged into my power meter, and this process adds an additional
+10 Watts to the system load, likely because this process is CPU intensive.
+
+Another nice lesson was that you can move drives around in the HL15, and TrueNAS/ZFS will figure it out.
+
+I create a ZFS3 VDEV with three parity drives, and a total of five drives, so adding a sixth drive was nice.
+
+The problems I had are with the UI/UX, and the documentation. The UI/UX is very confusing, and the documentation
+does not help, but the video ... was very helpful.
+
+### Plex
+
+There is 'software' and then there is 'shitware' and Plex is shitware. I will discuss this more in Slings and Arrows.
+
+Installing Plex under TrueNAS Scale is simple, but configuring it was a nightmare.
+
+TrueNAS Core uses Kubernetes, but TrueNAS Scale uses Docker, and this is a big improvement.
+
+Initially, I could not login to Plex, and this was a nightmare. See below. However, eventually I realized that
+originally I was accessing TrueNAS via 169.254.3.1, but then I realized I could access it via 10.0.0.176, and
+going in via 10.0.0.176 I was able to login to Plex.
+
+Trying to get Plex to 'see' my TrueNAS 'media' dataset was a nightmare. The video
+[TrueNAS Scale: Plex Dataset Permissions](https://www.youtube.com/watch?v=NmTGciOs3GU)
+gave me the most insight, but was not enough to solve the problem.
+
+While I have decades of System Administration experience, I hate doing it because in the SysAdmin culture,
+if it's not hard, you're not doing it right.
+
 ## First Light
 
 Powering up any system for the first time was a bit of a nail-biter. Things started, but there were problems.
@@ -396,7 +575,7 @@ Powering up any system for the first time was a bit of a nail-biter. Things star
 The first time I powered up the system, setup only reported 48 GB of RAM, but after reseating the DIMMs, it reported
 0 GB, so that was rather distressing. I could not get it to see the RAM again after that.
 
-
+Eventually I put the who system on a power meter, and under normal load with TrueNAS running, it uses about 200 watts,
 
 # Slings and Arrows
 
@@ -427,3 +606,85 @@ While they seem to have good products, their ability to design and build functio
       3. I tried giving feedback on their website. Turnaround is about a day based on previous experience.
       4. I tried phoning for support, waited on hold for 20 minutes, then the phone menu system asked me to
          leave a message.
+
+## Plex
+
+***Plex is a shit-show.*** Well, trying to run the Web UI under TrueNAS Scale at least.
+
+After installing and running Plex, then clicking the Web UI button in the TrueNAS UI I got
+
+![image](plex-not-authorized.png)
+
+This is a terrible user experience! It's a common error, with no reasonable advice on the internet of how to fix the
+problem.
+
+In the end, the problem was I was initially accessing TrueNAS via 169.254.3.1 on my local network, because that is
+how things just started up. Later I realize I come in via 10.0.0.176, and from here the Plex web UI just worked.
+
+I am also pretty sure that whoever designed the UI/UX for Plex is not from planet earth. They are so tangled up in
+'conversion' that they have lost sight of a good user experience.
+
+> UX conversion nightmares are situations where a website or app's user experience (UX) negatively impacts conversion
+> rates. This can happen when a website is difficult to use, frustrating, or slow to load.
+>
+> -- Google AI
+
+Actually, 'conversion' is a marketing term, and has nothing to do with a quality user experience, it is all about
+exploiting the user. This is why I call Plex 'shitware.' Plex UX imposes a nasty 'External Locus of Control' on
+the user.
+
+> Locus of control is a person's belief about how much control they have over the events in their life.
+> It's a key aspect of personality psychology.
+>
+> What is locus of control?
+>
+>    Internal locus of control: The belief that a person's actions determine the outcome of events
+>    External locus of control: The belief that external forces, like luck or other people, determine the outcome of events
+>
+> Who developed the concept?
+>
+> Julian B. Rotter developed the concept of locus of control in the 1950s
+> 
+> -- Google AI
+
+# Best Practices
+
+These are my personal best practices, but certainly other will have different opinions.
+
+## Measure Twice, Cut Once
+
+Being HSP/SPS certainly help me a lot because I am very careful, and I like to plan things out in advance. Also,
+I score rather high on the neurotic index of personality tests, so I worry a lot, too much.
+
+In spite of the best laid plans of mice and men, always have Plan B, Plan C, etc.
+
+Get advice from as many different sources as possible, but be prepared to ignore it all, and do what you think is best.
+However, more people are saying the same thing, the more consideration it should be given.
+
+## Photos and Videos
+
+Take lots of photos and videos of everything, before, during, and after. This is not only for documentation, but
+also for sanity. It is easy to forget things, and photos and videos can help you remember. Also, when making support
+calls, or RMA requests, photos and videos can be very helpful.
+
+## Server Culture
+
+When building a Home Lab NAS Server, it is important to adopt a server culture. This is a culture of reliability,
+maintainability, flexibility, etc. Sure, it's going to cost more, but sanity is worth a lot.
+
+- The BMC, IPMI, KVM, etc. are all very important
+- The HL15 is a superior server chassis, designed and implemented in a server culture
+- Supermicro are experts at server boards, designed and implemented in a server culture
+  - I am really glad I went with a server board instead of a workstation board
+  - Regrettably, I went with a workstation PSU, where the cables are too long because on the system board the
+    power connectors right beside the PSU
+  - On my previous workstation board, two of the power connectors are the furthest distance from the PSU
+- The AMD EPYC 9005 series is a server CPU, designed and implemented in a server culture
+  - Huge memory capacity with 12 memory channels
+  - Huge number of PCIe 5.0 lanes
+
+
+
+## TrueNAS
+
+Administrator account: truenas_admin (default)
