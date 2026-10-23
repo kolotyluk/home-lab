@@ -2,6 +2,8 @@
 Home Laboratory
 
 Where retired computer scientists and software engineers like to play....
+The [current configuration](#current-configuration) was checked against the running NAS on October 23, 2026.
+The build narrative and lessons learned below describe earlier configurations and are retained as history.
 
 <!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
 
@@ -35,13 +37,25 @@ Where retired computer scientists and software engineers like to play....
         + [M.2 NVMe SSD](#m2-nvme-ssd-1)
         + [TrueNAS Scale](#truenas-scale)
             - [VDEV Expansion](#vdev-expansion)
+        + [Media Services](#media-services)
         + [Plex](#plex)
     * [First Light](#first-light)
+    * [Current Configuration](#current-configuration)
+        + [Platform and Expansion](#platform-and-expansion)
+        + [Storage Devices and Pools](#storage-devices-and-pools)
+        + [Datasets and Applications](#datasets-and-applications)
+        + [Remote Access](#remote-access)
+        + [Storage Health](#storage-health)
+        + [Planned NVMe Upgrade](#planned-nvme-upgrade)
 - [Slings and Arrows](#slings-and-arrows)
     * [Supermicro](#supermicro)
-    * [Plex](#plex-1)
+    * [Apple Time Machine](#apple-time-machine)
+    * [Media Servers](#media-servers)
+        + [Plex](#plex-1)
 - [Best Practices](#best-practices)
     * [Measure Twice, Cut Once](#measure-twice-cut-once)
+    * [Trust No One](#trust-no-one)
+        + [Data Movement](#data-movement)
     * [Photos and Videos](#photos-and-videos)
     * [Server Culture](#server-culture)
     * [TrueNAS](#truenas)
@@ -72,6 +86,10 @@ this for a living. If I decide to do a video, this is the script...
 1. [JetKVM](https://www.kickstarter.com/projects/jetkvm/jetkvm)
 1. [Wera Kraftform Adjustable Torque Screwdriver with Quick-Release Chuck](https://www.kmstools.com/wera-kraftform-adjustable-torque-screwdriver-with-quick-release-chuck.html)
    1. Torx bit, t 20 x 152 mm
+1. [Hasivo S600WP-5XGT-1SX-SE](https://www.servethehome.com/hasivo-s600wp-5xgt-1sx-se-review-6-port-10gbe-switch-with-poe-realtek)
+1. [CalDigit Thunderbolt 4 Element Hub](https://www.caldigit.com/thunderbolt-4-element-hub)
+   (US) + 0.8m TBT4 Cable (TB4-ElementHub-US-AMZ)
+1. [Sonnet Solo 10G 10GBASE-T Thunderbolt to 10Gb Ethernet Adapter (SOLO10G-TB3)](https://www.sonnettech.com/product/solo10g-tb3/overview.html)
 1. [TrueNAS](https://www.truenas.com)
 1. [Plex](https://www.plex.tv/en-ca/personal-media-server)
 
@@ -91,6 +109,12 @@ this for a living. If I decide to do a video, this is the script...
 1. [KMS Tools](https://www.kmstools.com)
    1. WER-074710 Wera Kraftform Adjustable Torque Screwdriver with Quick-Release Chuck
    2. WER-050280 Wera Torx bit, t 20 x 152 mm
+1. [hasivo Official Store](https://hasivo.aliexpress.com/store/1101429856)
+    1. Hasivo S600WP-5XGT-1SX-SE
+1. [AVShop.ca](https://www.avshop.ca)
+   1. CalDigit Thunderbolt 4 Element Hub
+   2. Sonnet Solo 10G 10GBASE-T Thunderbolt to 10Gb Ethernet Adapter
+
 
 
 ## Rationale
@@ -532,6 +556,21 @@ I create a ZFS3 VDEV with three parity drives, and a total of five drives, so ad
 The problems I had are with the UI/UX, and the documentation. The UI/UX is very confusing, and the documentation
 does not help, but the video ... was very helpful.
 
+### Media Services
+
+When using a home lab server as a media server, it should be easier to setup than it is. There is a impedance mismatch
+between the TrueNAS and media services, and this is a problem.
+
+The biggest problem is configuring the TrueNAS dataset permissions, as you have to be a keen SysAdmin to get this right.
+My solution would be to have a 'media' dataset option, that triggers TrueNAS to set the permissions correctly.
+
+Ultimately, what I did, was make the 'media' dataset with Read permissions for 'everyone' out of frustration. This
+works, but is not ideal. TrueNAS would benefit from better design and automation in this area.
+
+Both Plex and Jellyfin are designed and implemented by Klingons, who have no concept of what is means to be human.
+There exists no way to simply cast media to a device.
+
+
 ### Plex
 
 There is 'software' and then there is 'shitware' and Plex is shitware. I will discuss this more in Slings and Arrows.
@@ -594,6 +633,125 @@ The first time I powered up the system, setup only reported 48 GB of RAM, but af
 
 Eventually I put the who system on a power meter, and under normal load with TrueNAS running, it uses about 200 watts,
 
+## Current Configuration
+
+Verified on October 23, 2026 using read-only `lsblk`, `zpool`, and `zfs` queries over SSH.
+Capacities and health findings are a point-in-time record, not live monitoring.
+Drive capacities below use manufacturers' decimal units; ZFS usage figures use binary units.
+
+### Platform and Expansion
+
+- 45Drives HL15 chassis.
+- Supermicro H13SSL-NT, revision 2.0, with AMD EPYC 9015 and 64 GB ECC DDR5 RDIMM,
+  as recorded in the build notes.
+- TrueNAS SCALE 25.04.2.6 at the time of inspection; automatic updates are enabled.
+- According to the [Supermicro specifications](https://www.supermicro.com/en/products/motherboard/h13ssl-nt):
+  - Three PCIe 5.0 x16 slots and two PCIe 5.0 x8 slots.
+  - Two PCIe 5.0 x4 M.2 slots, currently used for the boot drive and separate log device.
+  - Two PCIe 5.0 x8 MCIO ports, plus one hybrid PCIe 5.0 x8/SATA MCIO port.
+  - Available connectors do not establish current lane allocation, BIOS bifurcation settings, or adapter compatibility;
+    these need checking before an upgrade.
+
+### Storage Devices and Pools
+
+The running system has two imported pools, `archive` and `boot-pool`; no separate `scratch` pool is currently imported.
+There are 17 physical drives. Linux device names such as `sdj` can change after a reboot;
+use serial numbers or `/dev/disk/by-id/` paths when identifying a drive for maintenance.
+
+- **`archive` data vdev:** eight 8 TB WD HDDs (`sda` through `sdh`) in one RAIDZ3 vdev.
+  - Models: four WD80EFZZ, two WD80EFPX, and two WD80EFBX.
+  - RAIDZ3 provides three-disk failure tolerance within this HDD vdev, not across every device in the pool.
+- **`archive` special vdevs:** four 500 GB SATA SSDs in two separate two-way mirrors.
+  - `mirror-2`: two WD Blue SA510 SSDs (`sdi` and `sdj`).
+  - `mirror-3`: two WDC WDS500G2B0A SSDs (`sdm` and `sdn`).
+  - These store essential metadata, not disposable read cache. Losing both members of either special mirror can
+    make the entire pool inaccessible.
+  - `special_small_blocks` is currently `0` on the inspected filesystems, so small file-data blocks are not
+    explicitly directed to the special class by that setting.
+- **`archive` hot spares:** two 500 GB WDC WDS500G2B0A SSDs (`sdk` and `sdl`), both reported `AVAIL`.
+  - Neither had taken over for an active member at the time of inspection.
+- **`archive` separate intent log (SLOG):** one Intel SSDPEK1A118GA 118 GB NVMe (`nvme1n1`).
+  - This serves synchronous-write logging; it is not a general write-back cache.
+- **`boot-pool`:** one WD_BLACK SN850X 8 TB NVMe (`nvme0n1`), without a boot mirror.
+- **Other disk:** one WD4000FYYZ 4 TB HDD (`sdo`), not listed in either imported pool.
+  - This does not establish that the disk is empty or safe to reuse.
+- No L2ARC read-cache device was listed.
+
+`archive` reported approximately 16.4 TiB used at the dataset level and 8.76 TiB available.
+The raw pool allocation reported by `zpool list` includes parity and differs from filesystem-level accounting.
+Available space is shared among datasets, not a separate allowance for each one.
+`boot-pool` used approximately 16.8 GiB and retained six boot environments from 24.10.1 through 25.04.2.6.
+
+The most recent recorded RAIDZ expansion completed on January 24, 2025 and copied 20.2 TiB.
+Expansion redistributes old blocks across the enlarged group, but those blocks retain their previous
+data-to-parity ratio. Rewriting them can improve space efficiency; it is not necessary to finish distributing data.
+See the [OpenZFS RAIDZ expansion documentation](https://openzfs.github.io/openzfs-docs/man/v2.3/8/zpool-attach.8.html).
+
+### Datasets and Applications
+
+- `archive/media`: approximately 14.3 TiB used, mounted at `/mnt/archive/media`.
+- `archive/backups`: approximately 1.95 TiB used, mounted at `/mnt/archive/backups`.
+  - A dataset on this same pool does not provide an independent backup against pool loss.
+- `archive/Windows`: a ZFS block volume exposing a 100 GiB virtual disk; ZFS reported approximately 116 GiB used.
+- `archive/ix-apps`: approximately 123 GiB used, mounted at `/mnt/.ix-apps`.
+  - Application datasets include Home Assistant, Jellyfin, Plex, and PostgreSQL.
+  - Additional datasets hold Docker storage, application configuration, and the TrueNAS application catalog.
+- `archive/.system`: approximately 1.58 GiB used for TrueNAS system data.
+- `archive/pgdata`: approximately 96 KiB used, mounted at `/mnt/archive/pgdata`.
+- `/mnt/archive/eric` is the `eric` user's home directory, not a separate dataset in the observed inventory.
+
+Checksumming was enabled on the inspected filesystems. Independent backup coverage and successful restore testing
+have not been verified as part of this inventory.
+
+### Remote Access
+
+- SSH is enabled on port 22 and configured to start automatically.
+- SSH password authentication is disabled; the Mac's Ed25519 public key is registered for user `eric`.
+- A key-only SSH login as `eric` was tested successfully, with the NAS host fingerprint independently verified
+  against the value displayed in the TrueNAS shell.
+- `eric` has a Zsh login shell and home directory `/mnt/archive/eric`.
+- `truenas_admin` remains the administrative account; no new administrative privileges were granted to `eric`.
+- SSH file access follows the account's existing permissions; this setup does not enforce read-only access.
+  The inventory commands used were read-only.
+
+Service and user settings were configured through the TrueNAS middleware API using `midclt`,
+not by editing generated operating-system configuration files.
+
+### Storage Health
+
+As of October 23, 2026, both imported pools reported `ONLINE` with no known data errors.
+However, `archive` retained a device-error warning for the active SA510 special-vdev member
+with serial number **25225Y800549** (`sdj` at inspection).
+
+- ZFS recorded two read errors and 52 checksum errors on that SSD; these counts were unchanged between checks.
+- The October 12 scrub repaired 208 KiB and completed with zero errors.
+- A detailed SMART report recorded one uncorrectable read (`UNC`) at LBA 322390640.
+- SMART overall health reported `PASSED`, but the self-test status and history were inconsistent:
+  the execution-status field reported an incomplete test due to a fatal or unknown error,
+  while the extended-test log said "Completed without error" with 30% remaining.
+- Reported SATA CRC counters were zero; the cause has not been conclusively established.
+
+A successful GUI test result alone does not resolve these findings. Independent backup verification,
+checking the other mirror member, and planning a controlled replacement take priority over performance work.
+No drive was offlined or replaced, and no error counters were cleared during this inspection.
+
+### Planned NVMe Upgrade
+
+The longer-term goal is to replace the SATA special-vdev SSDs with higher-performance PCIe/NVMe devices.
+Enterprise devices with power-loss protection and suitable endurance are priorities;
+PCIe 4.0 devices can also be considered rather than requiring PCIe 5.0.
+
+- Preserve at least the existing mirror redundancy and verify each replacement resilver before proceeding.
+- Replacement devices must meet ZFS's actual size requirements, not just match a rounded capacity label.
+- Where practical, put mirror partners on separate adapters or connection paths.
+- Verify BIOS bifurcation support for passive multi-drive adapters, lane allocation, physical clearance,
+  power delivery, cabling, and cooling before selecting hardware.
+- Because this pool contains RAIDZ, special vdevs cannot simply be removed after adding a new one.
+  The migration needs a reviewed member-replacement procedure, not an add-copy-remove approach.
+
+This is a future direction, not an approved maintenance procedure. No upgrade or bulk data rewrite has been performed
+as part of this documentation update.
+
 # Slings and Arrows
 
 Some people may find this hard to believe, but working with technology can be very frustrating, and especially
@@ -624,7 +782,32 @@ While they seem to have good products, their ability to design and build functio
       4. I tried phoning for support, waited on hold for 20 minutes, then the phone menu system asked me to
          leave a message.
 
-## Plex
+## Apple Time Machine
+
+OMG! What a nightmare trying to get Apple Time Machine to work with network attached storage, and with TrueNAS, it's
+even worse.
+
+Previously, I had to create a Disk Image file on my SMB drive, and then mount this as a Time Machine drive. Every time
+I rebooted my Mac, I had to remount the drive.
+
+Given that TrueNAS supports Apple File Service, I thought this would be a lot easier, but it was not.
+
+## Media Servers
+
+Trying to get Plex and Jellyfin to work with TrueNAS was a nightmare; the diagnostics are abysmal. As someone who
+create and taught a third year university course in UI design, I am appalled at the quality of the UI/UX of these
+applications. On the other hand, given I am dealing with open source software, perhaps my expectations are too high.
+
+
+
+Part of the problem is that you have to be an expert system administrator to get these things to work, and while I
+have decades of experience, I hate doing it because in the SysAdmin culture, if it's not hard, you're not doing it
+right.
+
+As usual, hyper security is the problem, and the solution is to turn it off, but this is not easy to figure out.
+Normally, I am a believer in security, but in this case, it's a home-lab server, and I am the only user.
+
+### Plex
 
 ***Plex is a shit-show.*** Well, trying to run the Web UI under TrueNAS Scale at least.
 
@@ -678,6 +861,39 @@ In spite of the best laid plans of mice and men, always have Plan B, Plan C, etc
 Get advice from as many different sources as possible, but be prepared to ignore it all, and do what you think is best.
 However, more people are saying the same thing, the more consideration it should be given.
 
+## Trust No One
+
+When moving large volumes of data around trust nothing or no one. Shit happens, even with automation, bad shit happens.
+
+### Data Movement
+
+I create two VDEVs on my system, "archive" to be my main VDEV, but I had a shortage of disks, so I create a ZFS3 VDEV
+with five disks, two 8 TB, and three 4 TB. I created a second VDEV, "alternate" to be my scratch VDEV. I move the first
+batch of files from my legacy RAID to *archive,* but there was not enough room for the rest. I moved the second and
+third batches to *alternate*. 
+
+I shut down my legacy RAID to remove an offline 8 TB drive, since the RAID would not accept it. But, after powering
+the legacy RAID back on, it declared another drive had failed. *This system had become really flakey, which is the
+motivation for building this NAS.* Despite gallant efforts, I could not get this RAID stable. The tools that Sans
+Digital provides are very limited, and the RAID controller is over picky about disks. Eventually, I declared this RAID
+unrecoverable. While there were still files on it, I wanted to preserve, they were not as important, so I accepted
+my fate.
+
+> The five stages of grief are denial, anger, bargaining, depression, and acceptance.
+> They are a common way to describe the process of coping with loss
+
+I then started moving the files from *alternate* to *archive.* I did this via the TrueNAS shell with basic linux
+`cp` commands.
+
+Much to my surprise later, I found that some of the files I had moved from *alternate* to *archive* were not there.
+I cannot imagine what went wrong here, how could the `cp` command fail this way? But it did.
+
+1. Don't trust yourself. I should have copied all the files from the legacy RAID to the NAS. I underestimated how
+   unstable the legacy RAID was.
+2. Don't trust the tools. I never would have believed the `cp` command could fail this way, but it did.
+
+
+
 ## Photos and Videos
 
 Take lots of photos and videos of everything, before, during, and after. This is not only for documentation, but
@@ -705,3 +921,8 @@ maintainability, flexibility, etc. Sure, it's going to cost more, but sanity is 
 ## TrueNAS
 
 Administrator account: truenas_admin (default)
+
+TrueNAS will run on a wide variety of hardware, but for the kind of storage games I was playing, it really paid off
+to have a AMD EPYC 9015 with 64 GB of RAM, as when moving data around, while the system was also expanding a VDEV,
+the CPU utilization exceeded 50%. Sure, this could have happened with a lesser system, but it would have taken longer.
+
